@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: "Release used for a manual hosting test"
+        description: "Optional release used only for a manual hosting test"
         required: false
-        default: "2.18.1"
+        default: ""
         type: string
       activate:
         description: "Activate the manually supplied policy"
