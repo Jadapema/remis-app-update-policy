@@ -1,0 +1,71 @@
+name: Sync Remis update policy
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release used for a manual hosting test"
+        required: false
+        default: "2.18.1"
+        type: string
+      activate:
+        description: "Activate the manually supplied policy"
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: update-policy-pages
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate policy
+        id: policy
+        env:
+          REMIS_REPO_TOKEN: ${{ secrets.REMIS_REPO_TOKEN }}
+          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+          ACTIVATE_POLICY: ${{ github.event.inputs.activate }}
+        run: node scripts/sync-policy.mjs
+
+      - name: Configure GitHub Pages
+        if: steps.policy.outputs.changed == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload policy
+        if: steps.policy.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy policy
+        if: steps.policy.outputs.changed == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
+        run: |
+          {
+            echo "## Remis update policy"
+            echo "- Release: \`${{ steps.policy.outputs.release-version }}\`"
+            echo "- Source run: \`${{ steps.policy.outputs.run-id }}\`"
+            echo "- Changed: \`${{ steps.policy.outputs.changed }}\`"
+            echo "- URL: https://jadapema.github.io/remis-app-update-policy/mobile-update.json"
+          } >> "$GITHUB_STEP_SUMMARY"

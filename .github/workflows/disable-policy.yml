@@ -1,0 +1,34 @@
+name: Disable update policy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: update-policy-pages
+  cancel-in-progress: false
+
+jobs:
+  disable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Create empty policy
+        run: |
+          mkdir -p public
+          printf '{\n  "policies": []\n}\n' > public/mobile-update.json
+          touch public/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
