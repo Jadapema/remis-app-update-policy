@@ -153,7 +153,29 @@ const manualRelease = manualVersion
       runId: 'manual'
     }
   : null
-const release = manualRelease ?? (await findAutomaticRelease())
+let release = manualRelease
+
+if (!release) {
+  try {
+    release = await findAutomaticRelease()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const shouldWait = [
+      'The latest staging workflow has not completed successfully',
+      'The latest staging workflow did not deploy both platforms',
+      'No Semantic Release tag was created during the staging run'
+    ].includes(message)
+
+    if (!shouldWait) throw error
+
+    writeOutput('changed', 'false')
+    writeOutput('release-version', 'waiting-for-successful-deploy')
+    writeOutput('run-id', 'none')
+    console.log(`Automatic synchronization skipped: ${message}`)
+    process.exit(0)
+  }
+}
+
 const { marketingVersion, buildNumber } = parseReleaseVersion(
   release.releaseVersion
 )
