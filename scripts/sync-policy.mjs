@@ -163,7 +163,8 @@ if (!release) {
     const shouldWait = [
       'The latest staging workflow has not completed successfully',
       'The latest staging workflow did not deploy both platforms',
-      'No Semantic Release tag was created during the staging run'
+      'No Semantic Release tag was created during the staging run',
+      'GitHub API request failed: 404 /repos/remisapp/remis-app/actions/workflows/staging.yml/runs?branch=staging&per_page=1'
     ].includes(message)
 
     if (!shouldWait) throw error
