@@ -15,6 +15,20 @@ const policyUrl =
   process.env.POLICY_URL ??
   'https://jadapema.github.io/remis-app-update-policy/mobile-update.json'
 
+const writeOutput = (name, value) => {
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`)
+  }
+}
+
+if (!manualVersion && !token) {
+  writeOutput('changed', 'false')
+  writeOutput('release-version', 'not-configured')
+  writeOutput('run-id', 'none')
+  console.log('Automatic synchronization skipped: REMIS_REPO_TOKEN is not configured')
+  process.exit(0)
+}
+
 const request = async (endpoint) => {
   if (!token) {
     throw new Error('REMIS_REPO_TOKEN is required for automatic synchronization')
@@ -192,14 +206,9 @@ fs.mkdirSync(path.dirname(outputPath), { recursive: true })
 fs.writeFileSync(outputPath, `${JSON.stringify(policy, null, 2)}\n`)
 fs.writeFileSync(path.join(path.dirname(outputPath), '.nojekyll'), '')
 
-if (process.env.GITHUB_OUTPUT) {
-  fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`)
-  fs.appendFileSync(
-    process.env.GITHUB_OUTPUT,
-    `release-version=${release.releaseVersion}\n`
-  )
-  fs.appendFileSync(process.env.GITHUB_OUTPUT, `run-id=${release.runId}\n`)
-}
+writeOutput('changed', String(changed))
+writeOutput('release-version', release.releaseVersion)
+writeOutput('run-id', release.runId)
 
 console.log(
   `${changed ? 'Prepared' : 'Already published'} ${nextPolicyId} (${buildNumber})`
